@@ -41,29 +41,18 @@ def login():
         semua_user = cursor.fetchall()
         cursor.close()
         
-        # 🔎 KAMERA PENGINTAI 1: Memastikan data ditarik dari server
-        print("=== DEBUG TAHAP 1 ===", flush=True)
-        print(f"Data semua_user dari Clever Cloud: {semua_user}", flush=True)
-        
         user_ditemukan = None
         
         for baris in semua_user:
-            # Skenario A: Data berupa Dictionary
             if isinstance(baris, dict):
                 if baris.get('username', '').strip() == username.strip():
                     user_ditemukan = baris
                     break
-            # Skenario B: Data berupa Tuple / List / Objek Turunan Tuple
             else:
-                # Cara paling aman: Konversi elemen ke string dan cari yang cocok dengan username
                 elemen_str = [str(item).strip() for item in baris]
                 if username.strip() in elemen_str:
                     user_ditemukan = baris
                     break
-
-        # 🔎 KAMERA PENGINTAI 2: Memastikan target berhasil dikunci oleh Python
-        print("=== DEBUG TAHAP 2 ===", flush=True)
-        print(f"Hasil user_ditemukan: {user_ditemukan}", flush=True)
 
         if user_ditemukan:
             if isinstance(user_ditemukan, dict):
@@ -72,18 +61,19 @@ def login():
                 db_hash = user_ditemukan.get('password_hash')
                 db_role = user_ditemukan.get('role')
             else:
-                # Jika formatnya tuple/list, ekstraksi berdasarkan kepastian posisi indeks SQL
                 db_id = user_ditemukan[0]
                 db_username = user_ditemukan[1]
                 db_hash = user_ditemukan[2]
                 db_role = user_ditemukan[3]
             
-            # 🔎 KAMERA PENGINTAI 3: Memastikan string hash terbaca sempurna sebelum diuji Werkzeug
-            print("=== DEBUG TAHAP 3 ===", flush=True)
-            print(f"Hash yang akan dicek: {db_hash}", flush=True)
+            # Bersihkan hash dari segala format aneh (pastikan jadi string murni)
+            clean_hash = str(db_hash).strip()
             
-            # Eksekusi verifikasi password
-            if db_hash and check_password_hash(str(db_hash).strip(), password.strip()):
+            # 🔎 DEBUG UNTUK MEMASTIKAN TYPO 'SCRIPT' SUDAH HILANG
+            print(f"=== MENCOCOKKAN HASH DATABASE: {clean_hash} ===", flush=True)
+            
+            # Eksekusi verifikasi password murni database tingkat tinggi
+            if clean_hash and check_password_hash(clean_hash, password.strip()):
                 session['logged_in'] = True
                 session['user_id'] = db_id
                 session['username'] = db_username
