@@ -36,27 +36,43 @@ def login():
         koneksi = db.get_db()
         cursor = koneksi.cursor()
         
-        # 🚀 TRIK BARU: Kita ambil SEMUA data pengguna dulu (seperti rute katalog yang terbukti berhasil)
-        cursor.execute("SELECT id, username, password_hash, role FROM pengguna")
-        semua_user = cursor.fetchall() # Menggunakan fetchall() yang terbukti sukses di katalog!
+        # Ambil semua data pengguna seperti rute katalog
+        cursor.execute("SELECT * FROM pengguna")
+        semua_user = cursor.fetchall()
         cursor.close()
         
-        print("=== DEBUG LOGIN MODAL KATALOG ===", flush=True)
-        
-        # Kita cari usernamemya secara manual di dalam kodingan Python, bukan di SQL
         user_ditemukan = None
-        for baris in semua_user:
-            if baris[1].strip() == username.strip():
-                user_ditemukan = baris
-                break
         
+        # LAKUKAN PENGECEKAN YANG AMAN UNTUK SEGALA JENIS LIBRARY MySQL
+        for baris in semua_user:
+            # Kemungkinan 1: Jika data berupa Dictionary {'username': 'admin_kamera', ...}
+            if isinstance(baris, dict):
+                if baris.get('username', '').strip() == username.strip():
+                    user_ditemukan = baris
+                    break
+            # Kemungkinan 2: Jika data berupa Tuple/List biasa ('admin_kamera', ...)
+            elif isinstance(baris, (tuple, list)):
+                # Kita cari apakah teks username yang diketik ada di dalam tuple ini
+                if username.strip() in [str(item).strip() for item in baris]:
+                    user_ditemukan = baris
+                    break
+
         if user_ditemukan:
-            db_id = user_ditemukan[0]
-            db_username = user_ditemukan[1]
-            db_password_hash = user_ditemukan[2]
-            db_role = user_ditemukan[3]
+            # Ambil nilai hash dan role secara dinamis berdasarkan tipe datanya
+            if isinstance(user_ditemukan, dict):
+                db_id = user_ditemukan.get('id')
+                db_username = user_ditemukan.get('username')
+                db_hash = user_ditemukan.get('password_hash')
+                db_role = user_ditemukan.get('role')
+            else:
+                # Jika tuple, biasanya id di indeks 0, username di 1, hash di 2, role di 3
+                db_id = user_ditemukan[0]
+                db_username = user_ditemukan[1]
+                db_hash = user_ditemukan[2]
+                db_role = user_ditemukan[3]
             
-            if check_password_hash(db_password_hash.strip(), password.strip()):
+            # Eksekusi verifikasi password aman Werkzeug
+            if db_hash and check_password_hash(db_hash.strip(), password.strip()):
                 session['logged_in'] = True
                 session['user_id'] = db_id
                 session['username'] = db_username
@@ -66,7 +82,8 @@ def login():
                 if db_role == 'admin':
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('beranda'))
-        
+
+        # Jika tidak cocok atau tidak ditemukan
         flash('Username atau password salah!', 'gagal')
             
     return render_template('login.html')
