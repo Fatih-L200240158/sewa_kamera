@@ -35,30 +35,39 @@ def login():
         password = request.form['password']
         
         koneksi = db.get_db()
-        cursor = koneksi.cursor(dictionary=True)
         
-        # PARAMETERIZED QUERY: Mengambil data berdasarkan username
-        cursor.execute("SELECT * FROM pengguna WHERE username = %s", (username,))
-        user = cursor.fetchone()
+        # 👇 UBAH BARIS INI: Hapus (dictionary=True), biarkan cursor biasa
+        cursor = koneksi.cursor() 
+        
+        # Ambil data (outputnya akan berupa Tuple/List biasa, misal: (1, 'fatih', 'scrypt:...', 'admin'))
+        cursor.execute("SELECT id, username, password_hash, role FROM pengguna WHERE username = %s", (username,))
+        user_data = cursor.fetchone()
         cursor.close()
         
-        # 👇 TAMBAHKAN 3 BARIS INI UNTUK MENGINTIP EROR
         print("=== DEBUG LOGIN ONLINE ===", flush=True)
-        print(f"Data user dari database: {user}", flush=True)
-        print(f"Password dari form login: {password}", flush=True)
-        # 👆 ------------------------------------------
+        print(f"Data mentah dari DB: {user_data}", flush=True)
 
-        # Kita pakai strip() untuk jaga-jaga kalau ada spasi tak terlihat dari database
-        if user and check_password_hash(user['password_hash'].strip(), password.strip()):
-            session['logged_in'] = True
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role']
+        # Jika data user ditemukan di database
+        if user_data:
+            # Karena outputnya Tuple posisi index-nya: id=0, username=1, password_hash=2, role=3
+            db_id = user_data[0]
+            db_username = user_data[1]
+            db_password_hash = user_data[2]
+            db_role = user_data[3]
             
-            flash('Selamat datang kembali!', 'sukses')
-            if user['role'] == 'admin':
-                return redirect(url_for('admin_dashboard'))
-            return redirect(url_for('beranda'))
+            # Validasi password menggunakan enkripsi Werkzeug
+            if check_password_hash(db_password_hash.strip(), password.strip()):
+                session['logged_in'] = True
+                session['user_id'] = db_id
+                session['username'] = db_username
+                session['role'] = db_role
+                
+                flash('Selamat datang kembali!', 'sukses')
+                if db_role == 'admin':
+                    return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('beranda'))
+            else:
+                flash('Username atau password salah!', 'gagal')
         else:
             flash('Username atau password salah!', 'gagal')
             
