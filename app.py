@@ -42,6 +42,12 @@ def login():
         user = cursor.fetchone()
         cursor.close()
         
+        # 👇 TAMBAHKAN 3 BARIS INI UNTUK MENGINTIP EROR
+        print("=== DEBUG LOGIN ONLINE ===", flush=True)
+        print(f"Data user dari database: {user}", flush=True)
+        print(f"Password dari form login: {password}", flush=True)
+        # 👆 ------------------------------------------
+
         # Kita pakai strip() untuk jaga-jaga kalau ada spasi tak terlihat dari database
         if user and check_password_hash(user['password_hash'].strip(), password.strip()):
             session['logged_in'] = True
