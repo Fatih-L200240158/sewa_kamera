@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sewa Kamera{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <navbar>
+        <h2>📸 CamRent</h2>
+        <div>
+            <a href="/">Beranda</a>
+            <a href="/katalog">Katalog Kamera</a>
+            {% if session.get('logged_in') %}
+                {% if session.get('role') == 'admin' %}
+                    <a href="/admin" style="color: #ffd700;">Dashboard Admin</a>
+                {% endif %}
+                <a href="/logout" class="btn btn-danger" style="padding: 5px 10px; margin-left: 20px;">Logout ({{ session.get('username') }})</a>
+            {% else %}
+                <a href="/login">Login Admin</a>
+            {% endif %}
+        </div>
+    </navbar>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for kategori, pesan in messages %}
+                    <div class="flash-pesan {{ kategori }}">{{ pesan }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

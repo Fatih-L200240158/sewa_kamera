@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+
+{% block title %}Login Administrator - CamRent{% endblock %}
+
+{% block content %}
+    <div class="login-card">
+        <h2>Login Dashboard</h2>
+        
+        <form action="/login" method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" class="form-control" required placeholder="Masukkan username admin" autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" required placeholder="Masukkan password admin" autocomplete="off">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+        </form>
+        
+        <div class="alert-info">
+            💡 Akun Pengujian:<br>Username: <b>admin_kamera</b> | Password: <b>admin123</b>
+        </div>
+    </div>
+{% endblock %}
