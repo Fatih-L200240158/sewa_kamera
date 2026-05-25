@@ -33,20 +33,57 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
-        print("=== BYPASS MODE AKTIF ===", flush=True)
-        print(f"Mencoba login dengan username: {username}", flush=True)
+        koneksi = db.get_db()
+        cursor = koneksi.cursor()
+        
+        # KUNCI URUTAN: 0=id, 1=username, 2=password_hash, 3=role
+        cursor.execute("SELECT id, username, password_hash, role FROM pengguna")
+        semua_user = cursor.fetchall()
+        cursor.close()
+        
+        user_ditemukan = None
+        
+        for baris in semua_user:
+            if isinstance(baris, dict):
+                if baris.get('username', '').strip() == username.strip():
+                    user_ditemukan = baris
+                    break
+            else:
+                elemen_str = [str(item).strip() for item in baris]
+                if username.strip() in elemen_str:
+                    user_ditemukan = baris
+                    break
 
-        # 🚀 JALAN PINTAS SAKTI: Langsung lolos tanpa cek database pengguna!
-        if username.strip() == 'admin_kamera' and password.strip() == 'admin123':
-            session['logged_in'] = True
-            session['user_id'] = 1  # Kita palsukan ID penggunanya
-            session['username'] = 'admin_kamera'
-            session['role'] = 'admin'  # Kunci role sebagai admin agar lolos proteksi
+        if user_ditemukan:
+            if isinstance(user_ditemukan, dict):
+                db_id = user_ditemukan.get('id')
+                db_username = user_ditemukan.get('username')
+                db_password_db = user_ditemukan.get('password_hash') # Isinya teks biasa 'admin123'
+                db_role = user_ditemukan.get('role')
+            else:
+                db_id = user_ditemukan[0]
+                db_username = user_ditemukan[1]
+                db_password_db = user_ditemukan[2] # Isinya teks biasa 'admin123'
+                db_role = user_ditemukan[3]
             
-            flash('Selamat datang kembali Admin (Bypass)!', 'sukses')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash('Username atau password salah! (Bypass Mode)', 'gagal')
+            # 🔎 KAMERA PENGINTAI VERSI NON-HASH
+            print("=== PENGUJIAN TEKS MENTAH ===", flush=True)
+            print(f"Password dari Form: {password.strip()}", flush=True)
+            print(f"Password dari DB: {str(db_password_db).strip()}", flush=True)
+            
+            # 🚀 COCOKKAN LANGSUNG MENGGUNAKAN SAMA DENGAN (==)
+            if db_password_db and str(db_password_db).strip() == password.strip():
+                session['logged_in'] = True
+                session['user_id'] = db_id
+                session['username'] = db_username
+                session['role'] = db_role
+                
+                flash('Selamat datang kembali (Murni DB Non-Hash)!', 'sukses')
+                if db_role == 'admin':
+                    return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('beranda'))
+            
+        flash('Username atau password salah! (Database Mode)', 'gagal')
             
     return render_template('login.html')
 
