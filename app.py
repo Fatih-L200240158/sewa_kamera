@@ -27,7 +27,6 @@ def katalog():
     
     return render_template('katalog.html', daftar_kamera=data_kamera)
 
-# 3. RUTE: LOGIN (ADMIN & PELANGGAN)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -35,27 +34,28 @@ def login():
         password = request.form['password']
         
         koneksi = db.get_db()
+        cursor = koneksi.cursor()
         
-        # 👇 UBAH BARIS INI: Hapus (dictionary=True), biarkan cursor biasa
-        cursor = koneksi.cursor() 
-        
-        # Ambil data (outputnya akan berupa Tuple/List biasa, misal: (1, 'fatih', 'scrypt:...', 'admin'))
-        cursor.execute("SELECT id, username, password_hash, role FROM pengguna WHERE username = %s", (username,))
-        user_data = cursor.fetchone()
+        # 🚀 TRIK BARU: Kita ambil SEMUA data pengguna dulu (seperti rute katalog yang terbukti berhasil)
+        cursor.execute("SELECT id, username, password_hash, role FROM pengguna")
+        semua_user = cursor.fetchall() # Menggunakan fetchall() yang terbukti sukses di katalog!
         cursor.close()
         
-        print("=== DEBUG LOGIN ONLINE ===", flush=True)
-        print(f"Data mentah dari DB: {user_data}", flush=True)
-
-        # Jika data user ditemukan di database
-        if user_data:
-            # Karena outputnya Tuple posisi index-nya: id=0, username=1, password_hash=2, role=3
-            db_id = user_data[0]
-            db_username = user_data[1]
-            db_password_hash = user_data[2]
-            db_role = user_data[3]
+        print("=== DEBUG LOGIN MODAL KATALOG ===", flush=True)
+        
+        # Kita cari usernamemya secara manual di dalam kodingan Python, bukan di SQL
+        user_ditemukan = None
+        for baris in semua_user:
+            if baris[1].strip() == username.strip():
+                user_ditemukan = baris
+                break
+        
+        if user_ditemukan:
+            db_id = user_ditemukan[0]
+            db_username = user_ditemukan[1]
+            db_password_hash = user_ditemukan[2]
+            db_role = user_ditemukan[3]
             
-            # Validasi password menggunakan enkripsi Werkzeug
             if check_password_hash(db_password_hash.strip(), password.strip()):
                 session['logged_in'] = True
                 session['user_id'] = db_id
@@ -66,10 +66,8 @@ def login():
                 if db_role == 'admin':
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('beranda'))
-            else:
-                flash('Username atau password salah!', 'gagal')
-        else:
-            flash('Username atau password salah!', 'gagal')
+        
+        flash('Username atau password salah!', 'gagal')
             
     return render_template('login.html')
 
